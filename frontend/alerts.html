@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Alerts | DMS Enterprise</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-200: #e2e8f0;
+            --slate-50: #f8fafc;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-700);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background-color: var(--slate-800);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .brand {
+            padding: 24px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--slate-700);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 24px 16px;
+            flex: 1;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .nav-item a:hover, .nav-item a.active {
+            background-color: var(--slate-700);
+            color: white;
+        }
+
+        .status-footer {
+            padding: 24px;
+            background-color: var(--slate-900);
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .status-footer a {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--slate-800);
+            letter-spacing: -0.03em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Alert Controls */
+        .controls-card {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--slate-200);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--slate-200);
+            background: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--slate-600);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--blue-600);
+            color: var(--blue-600);
+        }
+
+        .filter-btn.active {
+            background: var(--blue-600);
+            color: white;
+            border-color: var(--blue-600);
+        }
+
+        .search-input {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--slate-200);
+            font-family: inherit;
+            font-size: 0.85rem;
+            width: 240px;
+        }
+
+        /* Alerts List */
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        /* Animation */
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="brand">
+            <i class="fas fa-layer-group"></i>
+            DMS Enterprise
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="nav-item"><a href="/map"><i class="fas fa-map-marked-alt"></i> Live Map</a></li>
+            <li class="nav-item"><a href="/alerts" class="active"><i class="fas fa-exclamation-triangle"></i> Alerts</a></li>
+            <li class="nav-item"><a href="/cities"><i class="fas fa-city"></i> Cities</a></li>
+            <li class="nav-item"><a href="/roads"><i class="fas fa-road"></i> Roads</a></li>
+            <li class="nav-item"><a href="/requests"><i class="fas fa-inbox"></i> Requests</a></li>
+            <li class="nav-item"><a href="/allocate"><i class="fas fa-truck-loading"></i> Allocation</a></li>
+            <li class="nav-item"><a href="/emergency"><i class="fas fa-phone-alt"></i> Emergency</a></li>
+            <li class="nav-item"><a href="/logs"><i class="fas fa-history"></i> Logs</a></li>
+        </ul>
+        <div class="status-footer">
+            <div><span style="color: #10b981">●</span> System Operational</div>
+            <div style="margin-top: 8px;"><a href="/api/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="header">
+            <div>
+                <h1><i class="fas fa-exclamation-triangle text-red pulse"></i> Tactical Alert Center</h1>
+                <p style="color: var(--slate-600); margin-top: 4px;">Monitor and triage live weather and manual request signals.</p>
+            </div>
+            <div style="background: white; padding: 10px 20px; border-radius: 8px; border: 1px solid var(--slate-200); font-weight: 600; font-size: 0.9rem;" id="alertsSummary">
+                Loading Summary...
+            </div>
+        </header>
+
+        <section class="controls-card">
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="setFilter('all', this)">All Signals</button>
+                <button class="filter-btn" onclick="setFilter('verified', this)"><i class="fas fa-satellite"></i> Confirmed</button>
+                <button class="filter-btn" onclick="setFilter('unverified', this)"><i class="fas fa-user-shield"></i> Unconfirmed</button>
+            </div>
+            <div>
+                <input type="text" placeholder="Search City..." class="search-input" id="citySearch" oninput="filterCards()">
+            </div>
+        </section>
+
+        <section class="alerts-grid" id="alertsGrid">
+            <div class="empty-state">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--blue-600); margin-bottom: 16px;"></i>
+                <p>Fetching active alert feeds from server...</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API = '/api';
+        let allAlerts = [];
+        let activeFilter = 'all';
+
+        async function fetchAlerts() {
+            try {
+                const graphRes = await fetch(`${API}/graph-info`);
+                const graphData = await graphRes.json();
+                
+                const reqRes = await fetch(`${API}/request/list`);
+                const reqData = await reqRes.json();
+                
+                const pendingRequests = reqData.requests.filter(r => r.status === 'pending');
+                
+                allAlerts = pendingRequests.map(req => {
+                    const city = graphData.cities.find(c => c.id === req.city_id);
+                    if (!city) return null;
+                    
+                    const temp = city.temperature !== undefined ? city.temperature : 25.0;
+                    const rain = city.rainfall !== undefined ? city.rainfall : 0.0;
+                    const seismic = city.seismic_activity !== undefined ? city.seismic_activity : 0.0;
+                    const wind = city.wind_speed !== undefined ? city.wind_speed : 10.0;
+                    
+                    const sensorThresholdCrossed = (rain > 150.0 || seismic > 6.0 || temp > 47.0 || temp < -5.0 || wind > 100.0);
+                    
+                    return {
+                        id: req.id,
+                        cityName: city.name,
+                        priority: req.priority,
+                        food: req.food || 0,
+                        water: req.water || 0,
+                        medicalKits: req.medical_kits || 0,
+                        rescueTeams: req.rescue_teams || 0,
+                        temp, rain, seismic, wind,
+                        isVerified: sensorThresholdCrossed
+                    };
+                }).filter(x => x !== null);
+                
+                updateSummary();
+                filterCards();
+            } catch (e) {
+                console.error("Failed to load alerts feed", e);
+                document.getElementById('alertsGrid').innerHTML = `
+                    <div class="empty-state" style="border-color: var(--red-500); background: #fff5f5; color: var(--red-600);">
+                        <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 12px;"></i>
+                        <p style="font-weight:600;">Failed to establish communication stream with the database.</p>
+                    </div>`;
+            }
+        }
+
+        function updateSummary() {
+            const summaryEl = document.getElementById('alertsSummary');
+            const total = allAlerts.length;
+            const verified = allAlerts.filter(a => a.isVerified).length;
+            const unverified = total - verified;
+            
+            summaryEl.innerHTML = `Active: <strong style="color:var(--red-600);">${total}</strong> | Confirmed: <strong style="color:var(--emerald-600);">${verified}</strong> | Unconfirmed: <strong style="color:var(--amber-600);">${unverified}</strong>`;
+        }
+
+        function setFilter(filterType, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = filterType;
+            filterCards();
+        }
+
+        function filterCards() {
+            const searchQuery = document.getElementById('citySearch').value.toLowerCase().trim();
+            const grid = document.getElementById('alertsGrid');
+            grid.innerHTML = '';
+            
+            let filtered = allAlerts;
+            
+            if (activeFilter === 'verified') {
+                filtered = filtered.filter(a => a.isVerified);
+            } else if (activeFilter === 'unverified') {
+                filtered = filtered.filter(a => !a.isVerified);
+            }
+            
+            if (searchQuery) {
+                filtered = filtered.filter(a => a.cityName.toLowerCase().includes(searchQuery));
+            }
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--emerald-500); margin-bottom: 12px;"></i>
+                        <p style="font-weight: 500; color: var(--slate-600);">No signals match your filter criteria.</p>
+                    </div>`;
+                return;
+            }
+            
+            filtered.forEach(alert => {
+                let alertTitle, alertColor, alertBg, alertBorder, verifyBadge;
+                if (alert.isVerified) {
+                    alertTitle = "VERIFIED DISASTER ALERT";
+                    alertColor = "var(--red-600)";
+                    alertBg = "#fff5f5";
+                    alertBorder = "1px solid #fecaca";
+                    verifyBadge = `<span style="font-size:0.7rem; background:#fee2e2; color:#ef4444; font-weight:700; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-satellite"></i> SENSOR CONFIRMED</span>`;
+                } else {
+                    alertTitle = "UNVERIFIED MANUAL REPORT";
+                    alertColor = "var(--amber-600)";
+                    alertBg = "#fffbeb";
+                    alertBorder = "1px solid #fde68a";
+                    verifyBadge = `<span style="font-size:0.7rem; background:#fef3c7; color:#d97706; font-weight:700; padding:3px 8px; border-radius:4px; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-user-shield"></i> UNCONFIRMED (POTENTIAL FAKE)</span>`;
+                }
+                
+                let triggers = [];
+                if (alert.rain > 150.0) triggers.push(`🌧️ Rain (${alert.rain}mm)`);
+                if (alert.seismic > 6.0) triggers.push(`🫨 Seismic (${alert.seismic}R)`);
+                if (alert.temp > 47.0) triggers.push(`🌡️ Heat (${alert.temp}°C)`);
+                if (alert.temp < -5.0) triggers.push(`🌡️ Cold (${alert.temp}°C)`);
+                if (alert.wind > 100.0) triggers.push(`💨 Wind (${alert.wind}km/h)`);
+                
+                const triggerText = triggers.length > 0 ? triggers.join(', ') : 'No Sensor Anomalies Detected';
+                
+                const card = document.createElement('div');
+                card.style.background = 'white';
+                card.style.padding = '20px';
+                card.style.borderRadius = '12px';
+                card.style.border = alertBorder;
+                card.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.justifyContent = 'space-between';
+                
+                card.innerHTML = `
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="font-size:1.2rem; color:var(--slate-800);">${alert.cityName}</strong>
+                            ${verifyBadge}
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; border-radius: 6px; background: ${alertBg}; font-size: 0.85rem; color: ${alertColor}; font-weight: 600;">
+                            <i class="fas fa-satellite-dish"></i> Status: ${triggerText}
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--slate-600); margin-top:10px;">
+                            🌡️ ${alert.temp}°C | 🌧️ ${alert.rain}mm | 🫨 ${alert.seismic}R | 💨 ${alert.wind}km/h
+                        </p>
+                        <p style="font-size:0.85rem; color:var(--slate-700); margin-top:12px; background:var(--slate-50); padding:10px; border-radius:6px; border:1px solid var(--slate-200);">
+                            📦 <strong>Needs:</strong> 🍞 ${alert.food} Food | 💧 ${alert.water} Water | ⚕️ ${alert.medicalKits} Kits | 👥 ${alert.rescueTeams} Teams
+                        </p>
+                    </div>
+                    <div style="margin-top: 16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--slate-200); padding-top:12px;">
+                        <span style="font-size:0.8rem; color:var(--slate-600);">Priority: <strong>${alert.priority}/10</strong></span>
+                        <a href="/allocate" style="font-size:0.85rem; color:var(--blue-600); text-decoration:none; font-weight:600;"><i class="fas fa-truck-loading"></i> Allocate Relief &rarr;</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        fetchAlerts();
+        setInterval(fetchAlerts, 5000);
+    </script>
+</body>
+</html>

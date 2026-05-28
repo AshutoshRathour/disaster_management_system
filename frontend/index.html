@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-200: #e2e8f0;
+            --slate-50: #f8fafc;
+            --blue-600: #2563eb;
+            --blue-700: #1d4ed8;
+            --emerald-500: #10b981;
+            --amber-500: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-700);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background-color: var(--slate-800);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .brand {
+            padding: 24px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--slate-700);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.025em;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 24px 16px;
+            flex: 1;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: #94a3b8;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .nav-item a:hover, .nav-item a.active {
+            background-color: var(--slate-700);
+            color: white;
+        }
+
+        .status-footer {
+            padding: 24px;
+            background-color: #0f172a;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .status-footer a {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--slate-800);
+            letter-spacing: -0.03em;
+        }
+
+        .date-badge {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--slate-200);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--slate-600);
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--slate-200);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--slate-800);
+        }
+
+        .kpi-sub {
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .text-emerald { color: var(--emerald-500); }
+        .text-blue { color: var(--blue-600); }
+
+        /* Quick Actions Grid */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        .action-card {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            border: 1px solid var(--slate-200);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--blue-600);
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            background: #eff6ff;
+            color: var(--blue-600);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 20px;
+        }
+
+        .action-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--slate-800);
+            margin-bottom: 8px;
+        }
+
+        .action-card p {
+            color: var(--slate-600);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        .pulse {
+            animation: pulse-animation 1.5s infinite;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="brand">
+            <i class="fas fa-layer-group"></i>
+            DMS Enterprise
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="nav-item"><a href="/map"><i class="fas fa-map-marked-alt"></i> Live Map</a></li>
+            <li class="nav-item"><a href="/alerts"><i class="fas fa-exclamation-triangle"></i> Alerts</a></li>
+            <li class="nav-item"><a href="/cities"><i class="fas fa-city"></i> Cities</a></li>
+            <li class="nav-item"><a href="/roads"><i class="fas fa-road"></i> Roads</a></li>
+            <li class="nav-item"><a href="/requests"><i class="fas fa-inbox"></i> Requests</a></li>
+            <li class="nav-item"><a href="/allocate"><i class="fas fa-truck-loading"></i> Allocation</a></li>
+            <li class="nav-item"><a href="/emergency"><i class="fas fa-phone-alt"></i> Emergency</a></li>
+            <li class="nav-item"><a href="/logs"><i class="fas fa-history"></i> Logs</a></li>
+        </ul>
+        <div class="status-footer">
+            <div><span style="color: #10b981">●</span> System Operational</div>
+            <div style="margin-top: 8px;"><a href="/api/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="header">
+            <div>
+                <h1>Overview</h1>
+                <p style="color: var(--slate-600); margin-top: 4px;">Welcome to the Disaster Management Command Center.</p>
+            </div>
+            <div class="date-badge" id="currentDate">
+                Loading date...
+            </div>
+        </header>
+
+        <!-- Real-Time Alert Center Banner -->
+        <section id="alertCenterSection" style="margin-bottom: 40px; display: none;">
+            <div id="alertBannerCard" class="kpi-card" style="transition: 0.3s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 18px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div id="alertBannerIcon" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div id="alertBannerTitle" class="kpi-label" style="margin-bottom: 2px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em;">SYSTEM STATUS</div>
+                            <p id="alertBannerMessage" style="font-size: 0.95rem; font-weight: 500; color: var(--slate-700);">All systems normal. No active alerts or pending requests.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <a id="alertBannerLink" href="/alerts" class="btn" style="display: inline-flex; align-items: center; gap: 8px; width: auto; padding: 10px 18px; margin: 0; background: var(--blue-600); color: white; border: none; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.85rem; transition: 0.2s;">
+                            <i class="fas fa-exclamation-triangle"></i> View Alerts
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Active Cities</div>
+                <div class="kpi-value" id="cityCount">-</div>
+                <div class="kpi-sub text-blue">Monitor Coverage</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Road Network</div>
+                <div class="kpi-value" id="roadCount">-</div>
+                <div class="kpi-sub text-emerald">Connections Active</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Pending Req</div>
+                <div class="kpi-value" id="reqCount">-</div>
+                <div class="kpi-sub" style="color: var(--amber-500)">Require Action</div>
+            </div>
+        </section>
+
+        <!-- System Settings & Live Sensors -->
+        <section class="control-grid" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; margin-bottom: 40px;">
+            <!-- Control Card -->
+            <div class="kpi-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div class="kpi-label"><i class="fas fa-sliders-h"></i> System Settings</div>
+                    <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--slate-800); margin: 12px 0 6px 0;">Alert Detection Mode</h3>
+                    <p style="font-size: 0.85rem; color: var(--slate-600); line-height: 1.4; margin-bottom: 16px;">
+                        Enable auto-detection to automatically trigger disaster alerts and register relief requests when sensors cross thresholds.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--slate-50); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--slate-200);">
+                    <span id="modeStatus" style="font-weight: 600; font-size: 0.9rem; color: var(--slate-700);">Mode: Loading...</span>
+                    <button id="toggleModeBtn" class="btn" style="width: auto; padding: 6px 14px; margin: 0; font-size: 0.85rem; background: var(--blue-600); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s;" onclick="toggleMode()">
+                        Toggle Mode
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Sensor Feeds -->
+            <div class="kpi-card" style="overflow: hidden; max-height: 250px; display: flex; flex-direction: column;">
+                <div class="kpi-label" style="margin-bottom: 12px;"><i class="fas fa-broadcast-tower"></i> Live Sensor Monitoring (5s poll)</div>
+                <div id="sensorAlertsList" style="flex: 1; overflow-y: auto; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="color: var(--slate-600); font-style: italic; text-align: center; margin-top: 20px;">Scanning for active alerts...</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="actions-grid">
+            <a href="/map" class="action-card">
+                <div class="icon-box"><i class="fas fa-satellite"></i></div>
+                <h3>Geospatial View</h3>
+                <p>Access the real-time map interface to visualize affected zones and plan logistics routes.</p>
+            </a>
+            <a href="/requests" class="action-card">
+                <div class="icon-box"><i class="fas fa-clipboard-check"></i></div>
+                <h3>Request Management</h3>
+                <p>Log new emergency requests and triage incoming distress signals from affected areas.</p>
+            </a>
+            <a href="/allocate" class="action-card">
+                <div class="icon-box"><i class="fas fa-network-wired"></i></div>
+                <h3>Allocation Engine</h3>
+                <p>Execute the core algorithm to distribute resources from support hubs to impact zones.</p>
+            </a>
+            <a href="/emergency" class="action-card">
+                <div class="icon-box" style="background:#fef2f2; color:#dc2626;"><i class="fas fa-phone-alt"></i></div>
+                <h3>Emergency Numbers</h3>
+                <p>Access critical helpline numbers for disaster response, police, fire, and medical services.</p>
+            </a>
+        </section>
+    </main>
+
+    <script>
+        const API = '/api';
+        let autoDetectionMode = false;
+
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API}/settings`);
+                const settings = await res.json();
+                autoDetectionMode = settings.auto_detection === 'true';
+                
+                const statusEl = document.getElementById('modeStatus');
+                const btnEl = document.getElementById('toggleModeBtn');
+                
+                if (autoDetectionMode) {
+                    statusEl.innerHTML = `Mode: <span style="color:#10b981; font-weight:700;"><i class="fas fa-play"></i> Auto-Detection</span>`;
+                    btnEl.innerHTML = `<i class="fas fa-pause"></i> Switch to Manual`;
+                    btnEl.style.backgroundColor = '#f59e0b';
+                } else {
+                    statusEl.innerHTML = `Mode: <span style="color:#ef4444; font-weight:700;"><i class="fas fa-hand-paper"></i> Manual Only</span>`;
+                    btnEl.innerHTML = `<i class="fas fa-play"></i> Enable Auto`;
+                    btnEl.style.backgroundColor = '#2563eb';
+                }
+            } catch (e) {
+                console.error("Failed to load settings");
+            }
+        }
+
+        async function toggleMode() {
+            try {
+                const newVal = !autoDetectionMode;
+                const res = await fetch(`${API}/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ auto_detection: newVal ? 'true' : 'false' })
+                });
+                if (res.ok) {
+                    await loadSettings();
+                    loadStats();
+                }
+            } catch (e) {
+                console.error("Toggle failed");
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const graphRes = await fetch(`${API}/graph-info`);
+                const graphData = await graphRes.json();
+                
+                document.getElementById('cityCount').textContent = graphData.cities.length;
+                document.getElementById('roadCount').textContent = graphData.roads.length;
+
+                const reqRes = await fetch(`${API}/request/list`);
+                const reqData = await reqRes.json();
+                const pending = reqData.requests.filter(r => r.status === 'pending').length;
+                
+                document.getElementById('reqCount').textContent = pending;
+                
+                updateSensorList(graphData.cities);
+                updateAlertCenter(graphData.cities, reqData.requests);
+            } catch (e) {
+                console.error("Dashboard data load failed");
+            }
+        }
+
+        function updateAlertCenter(cities, requests) {
+            const section = document.getElementById('alertCenterSection');
+            const card = document.getElementById('alertBannerCard');
+            const iconBox = document.getElementById('alertBannerIcon');
+            const titleEl = document.getElementById('alertBannerTitle');
+            const msgEl = document.getElementById('alertBannerMessage');
+            const btnEl = document.getElementById('alertBannerLink');
+            
+            const pendingRequests = requests.filter(r => r.status === 'pending');
+            
+            section.style.display = 'block';
+            
+            if (pendingRequests.length === 0) {
+                card.style.borderColor = '#10b981';
+                card.style.backgroundColor = '#f0fdf4';
+                
+                iconBox.style.backgroundColor = '#dcfce7';
+                iconBox.style.color = '#10b981';
+                iconBox.innerHTML = '<i class="fas fa-check-circle"></i>';
+                
+                titleEl.style.color = '#15803d';
+                titleEl.innerHTML = 'SYSTEM OPERATIONAL';
+                
+                msgEl.style.color = '#15803d';
+                msgEl.textContent = 'No active weather warnings or pending disaster relief requests. All regions stable.';
+                
+                btnEl.style.backgroundColor = '#10b981';
+                btnEl.innerHTML = '<i class="fas fa-shield-alt"></i> Monitor Status';
+            } else {
+                card.style.borderColor = '#dc2626';
+                card.style.backgroundColor = '#fef2f2';
+                
+                iconBox.style.backgroundColor = '#fee2e2';
+                iconBox.style.color = '#ef4444';
+                iconBox.innerHTML = '<i class="fas fa-exclamation-triangle pulse"></i>';
+                
+                titleEl.style.color = '#dc2626';
+                titleEl.innerHTML = 'TACTICAL ALERT COMMAND CENTER';
+                
+                const affectedNames = pendingRequests.map(r => {
+                    const city = cities.find(c => c.id === r.city_id);
+                    return city ? city.name : 'Unknown';
+                }).filter(name => name !== 'Unknown');
+                
+                const uniqueNames = [...new Set(affectedNames)];
+                let listStr = '';
+                if (uniqueNames.length > 2) {
+                    listStr = `${uniqueNames[0]}, ${uniqueNames[1]}, and ${uniqueNames.length - 2} other regions`;
+                } else if (uniqueNames.length > 0) {
+                    listStr = uniqueNames.join(' and ');
+                } else {
+                    listStr = 'multiple regions';
+                }
+                
+                msgEl.style.color = '#7f1d1d';
+                msgEl.innerHTML = `⚠️ <strong>${pendingRequests.length} active emergency signals</strong> detected in <strong>${listStr}</strong>. Immediate action required.`;
+                
+                btnEl.style.backgroundColor = '#dc2626';
+                btnEl.innerHTML = `<i class="fas fa-shield-alt"></i> Triage Alerts (${pendingRequests.length})`;
+            }
+        }
+
+        function updateSensorList(cities) {
+            const listEl = document.getElementById('sensorAlertsList');
+            listEl.innerHTML = '';
+            
+            if (cities.length === 0) {
+                listEl.innerHTML = '<div style="color: var(--slate-600); font-style: italic; text-align: center; margin-top: 20px;">No cities monitored.</div>';
+                return;
+            }
+            
+            const sortedCities = [...cities].sort((a, b) => {
+                const aRisk = a.sensor_status === 'High Risk/Disaster' ? 1 : 0;
+                const bRisk = b.sensor_status === 'High Risk/Disaster' ? 1 : 0;
+                return bRisk - aRisk;
+            });
+            
+            sortedCities.forEach(city => {
+                const isAlert = city.sensor_status === 'High Risk/Disaster';
+                const isWarning = !isAlert && (city.damage_level > 4);
+                
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+                div.style.padding = '8px 12px';
+                div.style.borderRadius = '6px';
+                
+                if (isAlert) {
+                    div.style.background = '#fef2f2';
+                    div.style.border = '1px solid #fee2e2';
+                } else if (isWarning) {
+                    div.style.background = '#fffbeb';
+                    div.style.border = '1px solid #fde68a';
+                } else {
+                    div.style.background = '#f8fafc';
+                    div.style.border = '1px solid #f1f5f9';
+                }
+                
+                const temp = city.temperature !== undefined ? city.temperature : 25.0;
+                const rain = city.rainfall !== undefined ? city.rainfall : 0.0;
+                const seismic = city.seismic_activity !== undefined ? city.seismic_activity : 0.0;
+                const wind = city.wind_speed !== undefined ? city.wind_speed : 10.0;
+                
+                let alertBadge = `<span style="color:#10b981; font-weight:600;"><i class="fas fa-check-circle"></i> Stable</span>`;
+                if (isAlert) {
+                    alertBadge = `<span class="pulse" style="color:#ef4444; font-weight:700;"><i class="fas fa-exclamation-triangle"></i> ALERT</span>`;
+                } else if (isWarning) {
+                    alertBadge = `<span style="color:#d97706; font-weight:600;"><i class="fas fa-tools"></i> Recovering</span>`;
+                }
+                
+                div.innerHTML = `
+                    <div>
+                        <strong style="color:var(--slate-800);">${city.name}</strong>
+                        <div style="font-size: 0.8rem; color: var(--slate-600); margin-top: 2px;">
+                            🌡️ ${temp}°C | 🌧️ ${rain}mm | 🫨 ${seismic}R | 💨 ${wind}km/h
+                        </div>
+                    </div>
+                    <div>${alertBadge}</div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        loadSettings();
+        loadStats();
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+</html>

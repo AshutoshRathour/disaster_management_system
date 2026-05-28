@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Map | DMS Enterprise</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-200: #e2e8f0;
+            --slate-50: #f8fafc;
+            --blue-600: #2563eb;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            color: var(--slate-700);
+            overflow: hidden;
+        }
+
+        /* Reusing Sidebar Styles */
+        .sidebar-nav {
+            width: 60px; /* Collapsed sidebar for map view to maximize space */
+            background-color: var(--slate-800);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            z-index: 1000;
+        }
+
+        .nav-icon {
+            color: #94a3b8;
+            font-size: 1.2rem;
+            margin-bottom: 24px;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .nav-icon:hover, .nav-icon.active {
+            background-color: var(--slate-700);
+            color: white;
+        }
+
+        /* Map Interface */
+        .map-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Floating Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--slate-200);
+            width: 320px;
+            z-index: 999;
+        }
+
+        .panel-header {
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--slate-600);
+            margin-bottom: 6px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--slate-200);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background-color: var(--slate-50);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background: var(--blue-600); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+
+        .btn-secondary { background: white; border: 1px solid var(--slate-200); color: var(--slate-700); }
+        .btn-secondary:hover { background: var(--slate-50); }
+
+        /* Path Info Card */
+        .info-card {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--slate-200);
+            width: 320px;
+            z-index: 999;
+            display: none;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .info-label { color: var(--slate-600); }
+        .info-value { font-weight: 600; color: var(--slate-800); }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Glowing Map Marker Styles */
+        .safe-marker {
+            filter: drop-shadow(0 0 6px #10b981);
+        }
+        .warning-marker {
+            filter: drop-shadow(0 0 6px #f59e0b);
+        }
+        .disaster-marker {
+            filter: drop-shadow(0 0 8px #ef4444);
+            animation: marker-pulse-red 1.5s infinite;
+        }
+        @keyframes marker-pulse-red {
+            0% { stroke-width: 2px; stroke-opacity: 1; fill-opacity: 1; }
+            50% { stroke-width: 8px; stroke-opacity: 0.3; fill-opacity: 0.7; }
+            100% { stroke-width: 2px; stroke-opacity: 1; fill-opacity: 1; }
+        }
+
+        /* Flowing Delivery Routes */
+        @keyframes flow-animation {
+            to {
+                stroke-dashoffset: -20;
+            }
+        }
+        .delivery-route-path {
+            stroke-dasharray: 8, 8;
+            animation: flow-animation 0.8s linear infinite;
+            filter: drop-shadow(0 0 5px #3b82f6);
+            stroke: #3b82f6;
+        }
+        .route-label {
+            background-color: #1e293b !important;
+            border: 1px solid #2563eb !important;
+            color: white !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+            padding: 4px 8px !important;
+            border-radius: 4px !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar-nav">
+        <a href="/" class="nav-icon" title="Dashboard"><i class="fas fa-home"></i></a>
+        <a href="/map" class="nav-icon active" title="Map"><i class="fas fa-map-marked-alt"></i></a>
+        <a href="/alerts" class="nav-icon" title="Alerts"><i class="fas fa-exclamation-triangle"></i></a>
+        <a href="/cities" class="nav-icon" title="Cities"><i class="fas fa-city"></i></a>
+        <a href="/roads" class="nav-icon" title="Roads"><i class="fas fa-road"></i></a>
+        <a href="/requests" class="nav-icon" title="Requests"><i class="fas fa-inbox"></i></a>
+        <a href="/allocate" class="nav-icon" title="Allocation"><i class="fas fa-truck-loading"></i></a>
+        <a href="/emergency" class="nav-icon" title="Emergency" style="color:#ef4444;"><i class="fas fa-phone-alt"></i></a>
+        <a href="/logs" class="nav-icon" title="Logs"><i class="fas fa-history"></i></a>
+        <a href="/api/logout" class="nav-icon" title="Logout" style="margin-top:auto;"><i class="fas fa-sign-out-alt"></i></a>
+    </nav>
+
+    <div class="map-wrapper">
+        <div class="control-panel">
+            <div class="panel-header"><i class="fas fa-route"></i> Route Planner</div>
+            
+            <div class="form-group">
+                <label>Origin Hub</label>
+                <select id="srcCity"><option>Select Origin...</option></select>
+            </div>
+            <div class="form-group">
+                <label>Target Zone</label>
+                <select id="destCity"><option>Select Target...</option></select>
+            </div>
+            
+            <button class="btn btn-primary" onclick="findPath()">Calculate Route</button>
+            <button class="btn btn-secondary" onclick="clearPath()">Reset View</button>
+        </div>
+
+        <div class="info-card" id="pathInfo">
+            <div class="panel-header" style="font-size: 1rem;">Route Details</div>
+            <div class="info-row">
+                <span class="info-label">Distance</span>
+                <span class="info-value"><span id="pathDistance"></span> km</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" style="color: #10b981">Optimal Path Found</span>
+            </div>
+            <div style="margin-top: 12px; font-size: 0.85rem; color: #64748b; line-height: 1.5;">
+                <strong>Path:</strong> <span id="pathRoute"></span>
+            </div>
+        </div>
+
+        <div class="legend" style="background: rgba(30, 41, 59, 0.95); border: 1px solid #475569; color: white;">
+            <div class="legend-item"><span class="dot" style="background:#ef4444; box-shadow: 0 0 6px #ef4444;"></span> Disaster (Red Glow)</div>
+            <div class="legend-item"><span class="dot" style="background:#f59e0b; box-shadow: 0 0 6px #f59e0b;"></span> Warning / Low Resource (Orange Glow)</div>
+            <div class="legend-item"><span class="dot" style="background:#10b981; box-shadow: 0 0 6px #10b981;"></span> Safe (Green Glow)</div>
+            <div class="legend-item"><span style="border-top: 2px dashed #3b82f6; width: 20px; display: inline-block; filter: drop-shadow(0 0 3px #3b82f6);"></span> Delivery Route (Dashed Flow)</div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        const API = '/api';
+        let map, cities = [], roads = [];
+        let pathLayer = null;
+
+        async function init() {
+            map = L.map('map', { zoomControl: false }).setView([29.9457, 78.1642], 8);
+            L.control.zoom({ position: 'topright' }).addTo(map);
+            
+            // Set dark theme tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors, © CartoDB'
+            }).addTo(map);
+
+            await loadData(false);
+            
+            // Periodically refresh sensor values and markers
+            setInterval(() => loadData(true), 5000);
+        }
+
+        async function loadData(isPeriodic = false) {
+            try {
+                const response = await fetch(`${API}/graph-info`);
+                const data = await response.json();
+                cities = data.cities;
+                roads = data.roads;
+                
+                if (!isPeriodic) {
+                    populateSelects();
+                    renderRoads();
+                }
+                renderCities();
+                await drawActiveAllocations();
+            } catch (error) {
+                console.error("Map data load failed");
+            }
+        }
+
+        function populateSelects() {
+            const srcSelect = document.getElementById('srcCity');
+            const destSelect = document.getElementById('destCity');
+            srcSelect.innerHTML = '<option value="">Select Origin...</option>';
+            destSelect.innerHTML = '<option value="">Select Target...</option>';
+
+            cities.sort((a,b) => a.name.localeCompare(b.name)).forEach(city => {
+                srcSelect.add(new Option(city.name, city.id));
+                destSelect.add(new Option(city.name, city.id));
+            });
+        }
+
+        let roadsRendered = false;
+        function renderRoads() {
+            if (roadsRendered) return;
+            roads.forEach(road => {
+                const srcCity = cities.find(c => c.id === road.src);
+                const destCity = cities.find(c => c.id === road.dest);
+                if (srcCity && destCity) {
+                    L.polyline([
+                        [srcCity.latitude, srcCity.longitude],
+                        [destCity.latitude, destCity.longitude]
+                    ], {
+                        color: '#475569',
+                        weight: 1.5,
+                        opacity: 0.3,
+                        dashArray: '3, 6'
+                    }).addTo(map);
+                }
+            });
+            roadsRendered = true;
+        }
+
+        let markers = {};
+
+        function getPopupContent(city) {
+            const temp = city.temperature !== undefined ? city.temperature : 25.0;
+            const rain = city.rainfall !== undefined ? city.rainfall : 0.0;
+            const seismic = city.seismic_activity !== undefined ? city.seismic_activity : 0.0;
+            const wind = city.wind_speed !== undefined ? city.wind_speed : 10.0;
+            
+            const isDisaster = city.damage_level > 7 || city.sensor_status === 'High Risk/Disaster';
+            const isWarning = !isDisaster && (city.damage_level > 3 || city.resources < 2000);
+            
+            const statusBadge = isDisaster
+                ? `<span style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:4px; font-weight:700; font-size:0.75rem;"><i class="fas fa-exclamation-triangle"></i> ALERT</span>`
+                : (isWarning 
+                    ? `<span style="background:#fef3c7; color:#d97706; padding:4px 8px; border-radius:4px; font-weight:700; font-size:0.75rem;"><i class="fas fa-exclamation-circle"></i> WARNING</span>`
+                    : `<span style="background:#dcfce7; color:#15803d; padding:4px 8px; border-radius:4px; font-weight:700; font-size:0.75rem;"><i class="fas fa-check-circle"></i> STABLE</span>`);
+
+            return `
+                <div style="font-family:'Inter', sans-serif; width:220px; padding:4px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <strong style="font-size:1.1rem; color:#1e293b;">${city.name}</strong>
+                        ${statusBadge}
+                    </div>
+                    <div style="font-size:0.85rem; color:#475569; margin-bottom:8px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                        👤 Population: <strong>${city.population.toLocaleString()}</strong><br>
+                        📦 Available Res: <strong>${city.resources} units</strong><br>
+                        ⚠️ Damage Level: <strong>${city.damage_level}/10</strong>
+                    </div>
+                    <div style="font-size:0.82rem; color:#1e293b; background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #f1f5f9;">
+                        <div style="font-weight:600; font-size:0.75rem; color:#64748b; text-transform:uppercase; margin-bottom:6px; letter-spacing:0.05em;"><i class="fas fa-satellite-dish"></i> Sensor Readings</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                            <span>🌡️ ${temp}°C</span>
+                            <span>🌧️ ${rain}mm</span>
+                            <span>🫨 ${seismic}R</span>
+                            <span>💨 ${wind}km/h</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCities() {
+            cities.forEach(city => {
+                const isDisaster = city.sensor_status === 'High Risk/Disaster';
+                const isWarning = !isDisaster && (city.damage_level > 4 || city.resources < 2000);
+                
+                let color = '#10b981'; // Green (Safe)
+                let markerClass = 'safe-marker';
+                if (isDisaster) {
+                    color = '#ef4444'; // Red (Disaster)
+                    markerClass = 'disaster-marker';
+                } else if (isWarning) {
+                    color = '#f59e0b'; // Orange (Warning)
+                    markerClass = 'warning-marker';
+                }
+
+                if (markers[city.id]) {
+                    markers[city.id].setStyle({
+                        fillColor: color,
+                        color: 'white',
+                        weight: isDisaster ? 3 : 2
+                    });
+                    markers[city.id].setPopupContent(getPopupContent(city));
+                    
+                    const pathEl = markers[city.id].getElement();
+                    if (pathEl) {
+                        pathEl.className.baseVal = '';
+                        pathEl.classList.add(markerClass);
+                    }
+                } else {
+                    const marker = L.circleMarker([city.latitude, city.longitude], {
+                        radius: 8,
+                        fillColor: color,
+                        color: 'white',
+                        weight: isDisaster ? 3 : 2,
+                        fillOpacity: 1,
+                        className: markerClass
+                    });
+                    marker.bindPopup(getPopupContent(city));
+                    marker.bindTooltip(city.name, {
+                        permanent: false, 
+                        direction: 'top',
+                        className: 'city-label'
+                    });
+                    marker.addTo(map);
+                    markers[city.id] = marker;
+                }
+            });
+        }
+
+        let allocationLayers = [];
+        
+        async function drawActiveAllocations() {
+            allocationLayers.forEach(l => map.removeLayer(l));
+            allocationLayers = [];
+            
+            try {
+                const logRes = await fetch(`${API}/logs`);
+                const logData = await logRes.json();
+                const allocLogs = logData.logs.filter(l => l.action === 'allocate');
+                const drawnPairs = new Set();
+                
+                for (const log of allocLogs) {
+                    const match = log.details.match(/from\s+([a-zA-Z0-9_\-\s]+?)\s+to\s+([a-zA-Z0-9_\-\s]+)/i);
+                    if (match) {
+                        const supportName = match[1].trim();
+                        const affectedName = match[2].trim();
+                        
+                        const pairKey = `${supportName}->${affectedName}`;
+                        if (drawnPairs.has(pairKey)) continue;
+                        drawnPairs.add(pairKey);
+                        
+                        const supportCity = cities.find(c => c.name.toLowerCase() === supportName.toLowerCase());
+                        const affectedCity = cities.find(c => c.name.toLowerCase() === affectedName.toLowerCase());
+                        
+                        if (supportCity && affectedCity) {
+                            const pathRes = await fetch(`${API}/shortest-path?src=${supportCity.id}&dest=${affectedCity.id}`);
+                            const pathData = await pathRes.json();
+                            
+                            if (pathData.success) {
+                                const pathCoords = pathData.path.map(id => {
+                                    const c = cities.find(c => c.id === id);
+                                    return [c.latitude, c.longitude];
+                                });
+                                
+                                const routeLayer = L.polyline(pathCoords, {
+                                    color: '#3b82f6',
+                                    weight: 4,
+                                    opacity: 0.8,
+                                    className: 'delivery-route-path'
+                                }).addTo(map);
+                                
+                                routeLayer.bindTooltip(`Supply Truck: ${supportName} ➔ ${affectedName}`, {
+                                    sticky: true,
+                                    className: 'route-label'
+                                });
+                                
+                                allocationLayers.push(routeLayer);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load active allocations", err);
+            }
+        }
+
+        async function findPath() {
+            const src = document.getElementById('srcCity').value;
+            const dest = document.getElementById('destCity').value;
+
+            if (!src || !dest || src === dest) return;
+
+            const response = await fetch(`${API}/shortest-path?src=${src}&dest=${dest}`);
+            const data = await response.json();
+
+            if (data.success) {
+                if (pathLayer) map.removeLayer(pathLayer);
+
+                const pathCoords = data.path.map(id => {
+                    const c = cities.find(c => c.id === id);
+                    return [c.latitude, c.longitude];
+                });
+
+                // Neon animated dashed flow polyline
+                pathLayer = L.polyline(pathCoords, {
+                    color: '#3b82f6',
+                    weight: 4,
+                    opacity: 0.9,
+                    className: 'delivery-route-path'
+                }).addTo(map);
+
+                map.fitBounds(pathLayer.getBounds(), { padding: [50, 50] });
+
+                const routeNames = data.path.map(id => cities.find(c => c.id === id).name).join(' → ');
+                document.getElementById('pathDistance').textContent = data.distance;
+                document.getElementById('pathRoute').textContent = routeNames;
+                document.getElementById('pathInfo').style.display = 'block';
+            }
+        }
+
+        function clearPath() {
+            if (pathLayer) map.removeLayer(pathLayer);
+            document.getElementById('pathInfo').style.display = 'none';
+        }
+
+        init();
+    </script>
+</body>
+</html>
